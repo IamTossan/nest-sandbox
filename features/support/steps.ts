@@ -24,7 +24,13 @@ Then('the server should return a list of coffees', function () {
       expect(coffee).toMatchObject({
         name: expect.any(String),
         brand: expect.any(String),
-        flavors: [expect.any(String)],
+        flavors: expect.any(Array),
+      });
+      coffee.flavors.forEach((flavor) => {
+        expect(flavor).toMatchObject({
+          id: expect.any(Number),
+          name: expect.any(String),
+        });
       });
     });
   });
@@ -91,7 +97,14 @@ Then('the server should return {string}', function (expectedResult) {
 
 Then('the server should return my coffee', function () {
   return (this.request as request.Test).expect(200).expect((res) => {
-    expect(res.body).toMatchObject(this.body);
+    expect(res.body).toMatchObject({
+      name: this.body.name,
+      brand: this.body.brand,
+      flavors: this.body.flavors.map((f) => ({
+        id: expect.any(Number),
+        name: f,
+      })),
+    });
   });
 });
 
@@ -100,7 +113,14 @@ Then('the server should create a coffee', function () {
     .get(`/coffees/${this.id}`)
     .expect(200)
     .expect((res) => {
-      expect(res.body).toMatchObject(this.body);
+      expect(res.body).toMatchObject({
+        name: this.body.name,
+        brand: this.body.brand,
+        flavors: this.body.flavors.map((f) => ({
+          id: expect.any(Number),
+          name: f,
+        })),
+      });
     });
 });
 
@@ -109,7 +129,14 @@ Then('the server should update a coffee', function () {
     .get(`/coffees/${this.id}`)
     .expect(200)
     .expect((res) => {
-      expect(res.body).toMatchObject(this.body);
+      expect(res.body).toMatchObject({
+        name: this.body.name,
+        brand: this.body.brand,
+        flavors: this.body.flavors.map((f) => ({
+          id: expect.any(Number),
+          name: f,
+        })),
+      });
     });
 });
 
