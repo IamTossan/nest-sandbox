@@ -1,26 +1,28 @@
 Feature: Coffee
 
+  Scenario: List coffees
+    When I GET "/coffees"
+    Then the server should return a list of coffees
+
   Scenario: Get a coffee by id
-    Given the server is running
-    When I GET "/coffees" 1
-    Then the server should return a coffee
+    Given a coffee is created
+    When I GET "/coffees" with my id
+    Then the server should return my coffee
 
   Scenario: Error getting a coffee by id
-    Given the server is running
-    When I GET "/coffees" 3
+    When I GET "/coffees" #9999
     Then the server should return an error
 
   Scenario: Create a coffee
-    Given the server is running
     When I POST "/coffees"
     Then the server should create a coffee
 
   Scenario: Update a coffee
-    Given the server is running
-    When I PATCH "/coffees" 1
+    Given a coffee is created
+    When I PATCH "/coffees" with my id
     Then the server should update a coffee
 
   Scenario: Delete a coffee
-    Given the server is running
-    When I DELETE "/coffees" 6
+    Given a coffee is created
+    When I DELETE "/coffees" with my id
     Then the server should delete a coffee

@@ -1,40 +1,61 @@
-import { When, Then, Given } from '@cucumber/cucumber';
+import { When, Then, AfterAll, Before, Given } from '@cucumber/cucumber';
 import * as request from 'supertest';
 import * as expect from 'expect';
-import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
 
-import { AppModule } from '../../src/app.module';
+import { getApp, stopApp } from './shared';
 
-Given('the server is running', async function () {
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule],
-  }).compile();
+Before(async function () {
+  this.app = await getApp();
+});
 
-  const app: INestApplication = moduleRef.createNestApplication();
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-  await app.init();
-  this.app = app;
+AfterAll(async function () {
+  await stopApp();
 });
 
 When('I GET {string}', async function (url) {
   this.request = request(this.app.getHttpServer()).get(url);
 });
 
-When('I GET {string} {int}', async function (url, id) {
+Then('the server should return a list of coffees', function () {
+  return (this.request as request.Test).expect((res) => {
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toBeInstanceOf(Array);
+    res.body.forEach((coffee) => {
+      expect(coffee).toMatchObject({
+        name: expect.any(String),
+        brand: expect.any(String),
+        flavors: [expect.any(String)],
+      });
+    });
+  });
+});
+
+When('I GET {string} #{int}', async function (url, id) {
   this.id = id;
   this.request = request(this.app.getHttpServer()).get(`${url}/${id}`);
 });
+When('I GET {string} with my id', async function (url) {
+  this.request = request(this.app.getHttpServer()).get(`${url}/${this.id}`);
+});
 
-When('I DELETE {string} {int}', async function (url, id) {
-  this.id = id;
-  this.request = request(this.app.getHttpServer()).delete(`${url}/${id}`);
+When('I DELETE {string} with my id', async function (url) {
+  this.request = await request(this.app.getHttpServer())
+    .delete(`${url}/${this.id}`)
+    .expect(200);
+});
+
+Given('a coffee is created', async function () {
+  this.body = {
+    name: 'my coffee',
+    brand: 'my brand',
+    flavors: ['banana'],
+  };
+  this.request = await request(this.app.getHttpServer())
+    .post('/coffees')
+    .send(this.body)
+    .set('Accept', 'application/json')
+    .expect(201);
+  this.id = this.request.body.id;
 });
 
 When('I POST {string}', async function (url) {
@@ -43,54 +64,59 @@ When('I POST {string}', async function (url) {
     brand: 'my brand',
     flavors: ['banana'],
   };
-  this.request = request(this.app.getHttpServer())
+  this.request = await request(this.app.getHttpServer())
     .post(url)
     .send(this.body)
-    .set('Accept', 'application/json');
+    .set('Accept', 'application/json')
+    .expect(201);
+  this.id = this.request.body.id;
 });
 
-When('I PATCH {string} {int}', async function (url, id) {
-  this.id = id;
+When('I PATCH {string} with my id', async function (url) {
   this.body = {
-    name: 'my coffee',
-    brand: 'my brand',
+    name: 'my coffee updated',
+    brand: 'my brand updated',
     flavors: ['banana'],
   };
-  this.request = request(this.app.getHttpServer())
-    .patch(`${url}/${id}`)
+  this.request = await request(this.app.getHttpServer())
+    .patch(`${url}/${this.id}`)
     .send(this.body)
-    .set('Accept', 'application/json');
+    .set('Accept', 'application/json')
+    .expect(200);
 });
 
 Then('the server should return {string}', function (expectedResult) {
   return this.request.expect(200).expect(expectedResult);
 });
 
-Then('the server should return a coffee', function () {
-  return this.request.expect(200).expect({
-    id: 1,
-    name: 'Shipwreck Roast',
-    brand: 'Buddy Brew',
-    flavors: ['chocolate', 'vanilla'],
+Then('the server should return my coffee', function () {
+  return (this.request as request.Test).expect(200).expect((res) => {
+    expect(res.body).toMatchObject(this.body);
   });
 });
 
 Then('the server should create a coffee', function () {
-  return (this.request as request.Test).expect((res) => {
-    expect(res.statusCode).toEqual(201);
-  });
+  return request(this.app.getHttpServer())
+    .get(`/coffees/${this.id}`)
+    .expect(200)
+    .expect((res) => {
+      expect(res.body).toMatchObject(this.body);
+    });
 });
 
 Then('the server should update a coffee', function () {
-  return (this.request as request.Test).expect((res) => {
-    expect(res.statusCode).toEqual(200);
-  });
+  return request(this.app.getHttpServer())
+    .get(`/coffees/${this.id}`)
+    .expect(200)
+    .expect((res) => {
+      expect(res.body).toMatchObject(this.body);
+    });
 });
 
 Then('the server should delete a coffee', function () {
-  return (this.request as request.Test).expect((res) => {
-    expect(res.statusCode).toEqual(200);
-  });
+  return request(this.app.getHttpServer())
+    .get(`/coffees/${this.id}`)
+    .expect(404);
 });
 
 Then('the server should return an error', function () {
