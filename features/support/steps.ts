@@ -78,6 +78,36 @@ When('I POST {string}', async function (url) {
   this.id = this.request.body.id;
 });
 
+When('I POST {string} with my id', async function (url) {
+  this.body = {
+    name: 'my coffee',
+    brand: 'my brand',
+    flavors: ['banana'],
+  };
+  this.request = await request(this.app.getHttpServer())
+    .post(`${url}/${this.id}`)
+    .send(this.body)
+    .set('Accept', 'application/json')
+    .expect(200);
+});
+
+Then('the coffee should have a recommendation', async function () {
+  return request(this.app.getHttpServer())
+    .get(`/coffees/${this.id}`)
+    .expect(200)
+    .expect((res) => {
+      expect(res.body).toMatchObject({
+        name: this.body.name,
+        brand: this.body.brand,
+        recommendations: 1,
+        flavors: this.body.flavors.map((f) => ({
+          id: expect.any(Number),
+          name: f,
+        })),
+      });
+    });
+});
+
 When('I PATCH {string} with my id', async function (url) {
   this.body = {
     name: 'my coffee updated',

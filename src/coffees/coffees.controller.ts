@@ -3,10 +3,12 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
 } from '@nestjs/common';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateCoffeeDto, UpdateCoffeeDto } from './coffees.dto';
 import { CoffeesService } from './coffees.service';
 
@@ -15,8 +17,8 @@ export class CoffeesController {
   constructor(private readonly coffeesService: CoffeesService) {}
 
   @Get()
-  findAll() {
-    return this.coffeesService.findAll();
+  findAll(@Param() paginationQueryDto: PaginationQueryDto) {
+    return this.coffeesService.findAll(paginationQueryDto);
   }
 
   @Get(':id')
@@ -37,5 +39,11 @@ export class CoffeesController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.coffeesService.remove(id);
+  }
+
+  @Post('recommend/:id')
+  @HttpCode(200)
+  recommend(@Param('id') id: string) {
+    return this.coffeesService.recommendCoffee(id);
   }
 }

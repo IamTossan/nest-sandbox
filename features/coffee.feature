@@ -26,3 +26,8 @@ Feature: Coffee
     Given a coffee is created
     When I DELETE "/coffees" with my id
     Then the server should delete a coffee
+
+  Scenario: Recommend a coffee
+    Given a coffee is created
+    When I POST "/coffees/recommend" with my id
+    Then the coffee should have a recommendation
