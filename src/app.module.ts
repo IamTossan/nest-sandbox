@@ -4,11 +4,12 @@ import { ConfigModule } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import { IsNotEmpty, IsNumber, validateSync } from 'class-validator';
 
+import { TypeOrmLogger } from './common/typeorm.logger';
 import { CoffeesModule } from './coffees/coffees.module';
+import { CoffeeRatingModule } from './coffee-rating/coffee-rating.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CoffeeRatingModule } from './coffee-rating/coffee-rating.module';
 
 class EnvironmentVariables {
   @IsNotEmpty()
@@ -56,6 +57,7 @@ class EnvironmentVariables {
         autoLoadEntities: true,
         synchronize: true,
         logging: true,
+        logger: new TypeOrmLogger('TypeOrmLogger'),
       }),
     }),
     CoffeesModule,
