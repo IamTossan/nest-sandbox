@@ -1,6 +1,9 @@
+import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { plainToInstance } from 'class-transformer';
 import { IsNotEmpty, IsNumber, validateSync } from 'class-validator';
 
@@ -10,6 +13,7 @@ import { CoffeeRatingModule } from './coffee-rating/coffee-rating.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ProgramsModule } from './programs/programs.module';
 
 class EnvironmentVariables {
   @IsNotEmpty()
@@ -60,8 +64,18 @@ class EnvironmentVariables {
         logger: new TypeOrmLogger('TypeOrmLogger'),
       }),
     }),
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      typePaths: ['./**/*.graphql'],
+      definitions: {
+        path: join(process.cwd(), 'src/graphql.ts'),
+      },
+      playground: true,
+      debug: true,
+    }),
     CoffeesModule,
     CoffeeRatingModule,
+    ProgramsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,45 @@
+type Program {
+  id: ID!
+  title: String!
+  versionId: ID
+  version: String!
+  courses: [Course!]
+}
+
+type Course {
+  id: ID!
+  units: [Unit!]
+}
+
+type Unit {
+  id: ID!
+  homeworks: [Homework!]
+}
+
+type Homework {
+  id: ID!
+}
+
+input CreateProgramInput {
+  name: String!
+}
+
+input UpdateProgramInput {
+  id: Int!
+}
+
+type Query {
+  users: [User!]
+  programs: [Program!]
+}
+
+type Query {
+  programs: [Program]!
+  program(id: Int!): Program
+}
+
+type Mutation {
+  createProgram(createProgramInput: CreateProgramInput!): Program!
+  updateProgram(updateProgramInput: UpdateProgramInput!): Program!
+  removeProgram(id: Int!): Program
+}
