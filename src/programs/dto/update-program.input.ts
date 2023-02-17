@@ -1,6 +1,48 @@
-import { CreateProgramInput } from './create-program.input';
-import { PartialType } from '@nestjs/mapped-types';
+import { Type } from 'class-transformer';
+import {
+  Allow,
+  IsEnum,
+  IsInstance,
+  IsJSON,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
+import {
+  UpdateProgramInput as IUpdateProgramInput,
+  UpdateProgramInputPayload as IUpdateProgramInputPayload,
+  ProgramNodeType,
+  UpdateProgramType,
+} from '../../graphql';
 
-export class UpdateProgramInput extends PartialType(CreateProgramInput) {
-  id: number;
+export class UpdateProgramInputPayload implements IUpdateProgramInputPayload {
+  @IsEnum(ProgramNodeType)
+  @IsOptional()
+  type: ProgramNodeType;
+
+  @IsString()
+  @IsOptional()
+  title: string;
+
+  @Allow()
+  @IsOptional()
+  content?: Record<string, any>[];
+}
+
+export class UpdateProgramInput implements IUpdateProgramInput {
+  @IsUUID()
+  programId: string;
+
+  @IsEnum(UpdateProgramType)
+  type: UpdateProgramType;
+
+  @IsUUID()
+  targetId: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => UpdateProgramInputPayload)
+  payload: UpdateProgramInputPayload;
 }

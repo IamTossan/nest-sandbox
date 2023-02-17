@@ -14,6 +14,7 @@ import { CoffeeRatingModule } from './coffee-rating/coffee-rating.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProgramsModule } from './programs/programs.module';
+import GraphQLJSON, { GraphQLJSONObject } from 'graphql-type-json';
 
 class EnvironmentVariables {
   @IsNotEmpty()
@@ -70,6 +71,7 @@ class EnvironmentVariables {
       definitions: {
         path: join(process.cwd(), 'src/graphql.ts'),
       },
+      resolvers: { JSON: GraphQLJSON, JSONObject: GraphQLJSONObject },
       playground: true,
       debug: true,
     }),

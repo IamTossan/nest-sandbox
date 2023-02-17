@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, QueryRunner, Repository } from 'typeorm';
 import {
   Program,
   ProgramNode,
@@ -46,10 +46,10 @@ export class ProgramsService {
       await queryRunner.release();
     }
     return {
-      id: program.id.toString(),
+      id: program.id,
       title: rootNode.name,
       version: program.version_name,
-      versionId: rootNode.id.toString(),
+      versionId: rootNode.id,
       courses: [],
     };
   }
@@ -59,23 +59,154 @@ export class ProgramsService {
       relations: { root_node: true },
     });
     return programs.map((p) => ({
-      id: p.id.toString(),
+      id: p.id,
       title: p.root_node.name,
       version: p.version_name,
-      versionId: p.root_node.id.toString(),
-      courses: [],
+      versionId: p.root_node.id,
+      root_node: p.root_node,
     }));
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} program`;
+  async findOne(id: string) {
+    const program = await this.programRepository.findOne({
+      where: { id },
+      relations: { root_node: true },
+    });
+    return {
+      id: program.id,
+      title: program.root_node.name,
+      version: program.version_name,
+      versionId: program.root_node.id,
+      root_node: program.root_node,
+    };
   }
 
-  update(id: number, updateProgramInput: UpdateProgramInput) {
-    return `This action updates a #${id} program`;
+  async findNodesByIds(ids: string[]): Promise<ProgramNode[]> {
+    return this.programNodeRepository.find({ where: { id: In(ids) } });
   }
 
-  remove(id: number) {
+  async getParentNode(
+    queryRunner: QueryRunner,
+    programId: string,
+    currentNode: ProgramNode,
+  ): Promise<ProgramNode | null> {
+    switch (currentNode.type) {
+      case ProgramNodeType.PROGRAM:
+        return null;
+      case ProgramNodeType.COURSE:
+        const program = await queryRunner.manager.findOne(Program, {
+          where: { id: programId },
+          relations: { root_node: true },
+        });
+        return program.root_node;
+    }
+  }
+
+  async updateNode(updateProgramInput: UpdateProgramInput) {
+    const queryRunner = this.datasource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // create a new node
+      const targetNode = await queryRunner.manager.findOne(ProgramNode, {
+        where: { id: updateProgramInput.targetId },
+      });
+      const updatedNode = new ProgramNode();
+      updatedNode.type = targetNode.type;
+      updatedNode.name = updateProgramInput.payload.title;
+      updatedNode.content =
+        updateProgramInput.payload.content || targetNode.content;
+      updatedNode.children = targetNode.children;
+      let currentNode = await queryRunner.manager.save(updatedNode);
+
+      // update parents
+      if (updatedNode.type !== ProgramNodeType.PROGRAM) {
+      }
+
+      // update program refs
+      await queryRunner.manager.update(
+        Program,
+        {
+          id: updateProgramInput.programId,
+        },
+        {
+          root_node: updatedNode,
+        },
+      );
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async addChild(updateProgramInput: UpdateProgramInput) {
+    const queryRunner = this.datasource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // create child node
+      const childNode = new ProgramNode();
+      childNode.type = updateProgramInput.payload.type;
+      childNode.name = updateProgramInput.payload.title;
+      childNode.content = updateProgramInput.payload.content;
+      childNode.children = [];
+      await queryRunner.manager.save(childNode);
+
+      // clone target and add new child ref
+      const targetNode = await queryRunner.manager.findOne(ProgramNode, {
+        where: { id: updateProgramInput.targetId },
+      });
+      const updatedNode = new ProgramNode();
+      updatedNode.type = targetNode.type;
+      updatedNode.name = targetNode.name;
+      updatedNode.content = targetNode.content;
+      updatedNode.children = [...targetNode.children, childNode.id];
+      let currentNode = await queryRunner.manager.save(updatedNode);
+
+      // update parents
+
+      if (currentNode.type !== ProgramNodeType.PROGRAM) {
+      }
+
+      // update program refs
+      await queryRunner.manager.update(
+        Program,
+        {
+          id: updateProgramInput.programId,
+        },
+        {
+          root_node: currentNode,
+        },
+      );
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async update(updateProgramInput: UpdateProgramInput) {
+    switch (updateProgramInput.type) {
+      case GraphqlTypes.UpdateProgramType.UpdateNode:
+        await this.updateNode(updateProgramInput);
+        break;
+      case GraphqlTypes.UpdateProgramType.AddChild:
+        await this.addChild(updateProgramInput);
+        break;
+    }
+    return this.findOne(updateProgramInput.programId);
+  }
+
+  remove(id: string) {
     return `This action removes a #${id} program`;
   }
 }

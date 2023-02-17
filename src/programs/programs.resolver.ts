@@ -1,7 +1,15 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { ProgramsService } from './programs.service';
 import { CreateProgramInput } from './dto/create-program.input';
 import { UpdateProgramInput } from './dto/update-program.input';
+import { Program } from './entities/program.entity';
 
 @Resolver('Program')
 export class ProgramsResolver {
@@ -18,17 +26,24 @@ export class ProgramsResolver {
   }
 
   @Query('program')
-  findOne(@Args('id') id: number) {
+  findOne(@Args('id') id: string) {
     return this.programsService.findOne(id);
   }
 
   @Mutation('updateProgram')
   update(@Args('updateProgramInput') updateProgramInput: UpdateProgramInput) {
-    return this.programsService.update(updateProgramInput.id, updateProgramInput);
+    return this.programsService.update(updateProgramInput);
   }
 
   @Mutation('removeProgram')
-  remove(@Args('id') id: number) {
+  remove(@Args('id') id: string) {
     return this.programsService.remove(id);
+  }
+
+  @ResolveField()
+  async courses(@Parent() program: Program) {
+    const ids = program.root_node.children;
+    const nodes = await this.programsService.findNodesByIds(ids);
+    return nodes.map((n) => ({ ...n, title: n.name }));
   }
 }

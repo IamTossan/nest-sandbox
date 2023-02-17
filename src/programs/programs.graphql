@@ -1,3 +1,6 @@
+scalar JSON
+scalar JSONObject
+
 type Program {
   id: ID!
   title: String!
@@ -8,6 +11,7 @@ type Program {
 
 type Course {
   id: ID!
+  title: String!
   units: [Unit!]
 }
 
@@ -24,8 +28,31 @@ input CreateProgramInput {
   name: String!
 }
 
+enum ProgramNodeType {
+  PROGRAM
+  COURSE
+  UNIT
+  HOMEWORK
+}
+
+enum UpdateProgramType {
+  UpdateNode
+  AddChild
+  RemoveChild
+  ReorderChildren
+}
+
+input UpdateProgramInputPayload {
+  type: ProgramNodeType
+  title: String
+  content: JSON
+}
+
 input UpdateProgramInput {
-  id: Int!
+  programId: ID!
+  targetId: ID!
+  type: UpdateProgramType!
+  payload: UpdateProgramInputPayload
 }
 
 type Query {

@@ -18,7 +18,7 @@ export enum ProgramNodeType {
 @Entity()
 export class ProgramNode extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column({
     type: 'enum',
@@ -44,13 +44,10 @@ export class ProgramNode extends BaseEntity {
 @Entity()
 export class Program extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column()
   version_name: string;
-
-  @OneToOne((type) => ProgramNode)
-  version: number;
 
   @OneToOne(() => ProgramNode, { nullable: false })
   @JoinColumn({ name: 'root_node_id' })

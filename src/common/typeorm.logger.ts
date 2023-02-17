@@ -6,7 +6,13 @@ export class TypeOrmLogger extends Logger implements ITypeOrmLogger {
    * Logs query and parameters used in it.
    */
   logQuery(query: string, parameters?: any[], queryRunner?: QueryRunner): any {
-    super.log(query);
+    super.log(
+      `${query} ${
+        parameters && parameters.length
+          ? 'params: [ ' + parameters.join(', ') + ' ]'
+          : ''
+      }`,
+    );
   }
   /**
    * Logs query that is failed.
