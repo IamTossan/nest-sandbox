@@ -173,7 +173,6 @@ export class ProgramsService {
       let currentId = path.pop();
       let currentNode = nodes_as_map.get(currentId);
       let updatedNode = new ProgramNode();
-      console.log(currentNode, nodes_as_map);
       updatedNode.name = currentNode.name;
       updatedNode.type = currentNode.type;
       updatedNode.content = currentNode.content;
