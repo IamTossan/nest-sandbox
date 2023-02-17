@@ -32,7 +32,7 @@ export class ProgramNode extends BaseEntity {
 
   @Column({
     type: 'jsonb',
-    default: () => "'[]'",
+    default: () => `'[""]'`,
     nullable: false,
   })
   children: Array<ProgramNode['id']>;

@@ -11,6 +11,41 @@ import * as GraphqlTypes from '../../src/graphql';
 import { CreateProgramInput } from './dto/create-program.input';
 import { UpdateProgramInput } from './dto/update-program.input';
 
+const listNodesByProgramIdQuery = (id: string) => `
+  with nodes as (
+    with recursive base as (
+        select
+            id,
+            name,
+            type,
+            content,
+            children,
+            jsonb_array_elements_text(children) as child_id
+        from program_node
+        where id = '${id}'
+        union all
+        select
+            cur.id,
+            cur.name,
+            cur.type,
+            cur.content,
+            cur.children,
+            jsonb_array_elements_text(cur.children) as child_id
+        from program_node as cur
+            inner join base as pre on cur.id::text = pre.child_id
+    )
+    select
+        id,
+        name,
+        type,
+        content,
+        children
+    from base
+  )
+  select distinct * from nodes
+  ;
+`;
+
 @Injectable()
 export class ProgramsService {
   constructor(
@@ -85,44 +120,109 @@ export class ProgramsService {
     return this.programNodeRepository.find({ where: { id: In(ids) } });
   }
 
-  async getParentNode(
-    queryRunner: QueryRunner,
-    programId: string,
-    currentNode: ProgramNode,
-  ): Promise<ProgramNode | null> {
-    switch (currentNode.type) {
-      case ProgramNodeType.PROGRAM:
-        return null;
-      case ProgramNodeType.COURSE:
-        const program = await queryRunner.manager.findOne(Program, {
-          where: { id: programId },
-          relations: { root_node: true },
-        });
-        return program.root_node;
-    }
+  async findNodesByRootId(id: string): Promise<ProgramNode[]> {
+    return this.programNodeRepository.query(listNodesByProgramIdQuery(id));
   }
 
-  async updateNode(updateProgramInput: UpdateProgramInput) {
+  dfs(
+    targetId: ProgramNode['id'],
+    nextId: ProgramNode['id'],
+    nodes: Map<ProgramNode['id'], ProgramNode>,
+    currentPath: ProgramNode['id'][] = [],
+  ): ProgramNode['id'][] | null {
+    const newPath = [...currentPath, nextId];
+    if (nextId === targetId) {
+      return newPath;
+    }
+    for (let i of nodes.get(nextId).children.slice(1)) {
+      const traversalResult = this.dfs(targetId, i, nodes, newPath);
+      if (traversalResult !== null) {
+        return traversalResult;
+      }
+    }
+    return null;
+  }
+
+  async updateProgramNodes(updateProgramInput: UpdateProgramInput) {
     const queryRunner = this.datasource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // create a new node
-      const targetNode = await queryRunner.manager.findOne(ProgramNode, {
-        where: { id: updateProgramInput.targetId },
+      // find path
+      const program = await queryRunner.manager.findOne(Program, {
+        where: { id: updateProgramInput.programId },
+        relations: { root_node: true },
       });
-      const updatedNode = new ProgramNode();
-      updatedNode.type = targetNode.type;
-      updatedNode.name = updateProgramInput.payload.title;
-      updatedNode.content =
-        updateProgramInput.payload.content || targetNode.content;
-      updatedNode.children = targetNode.children;
-      let currentNode = await queryRunner.manager.save(updatedNode);
+      const nodes: ProgramNode[] = await queryRunner.manager.query(
+        listNodesByProgramIdQuery(program.root_node.id),
+      );
+      const nodes_as_map = new Map();
+      for (const n of nodes) {
+        nodes_as_map.set(n.id, n);
+      }
+      const path = this.dfs(
+        updateProgramInput.targetId,
+        program.root_node.id,
+        nodes_as_map,
+      );
 
-      // update parents
-      if (updatedNode.type !== ProgramNodeType.PROGRAM) {
+      // update target node
+      let currentId = path.pop();
+      let currentNode = nodes_as_map.get(currentId);
+      let updatedNode = new ProgramNode();
+      console.log(currentNode, nodes_as_map);
+      updatedNode.name = currentNode.name;
+      updatedNode.type = currentNode.type;
+      updatedNode.content = currentNode.content;
+      updatedNode.children = currentNode.children;
+
+      switch (updateProgramInput.type) {
+        case GraphqlTypes.UpdateProgramType.AddChild:
+          const childNode = new ProgramNode();
+          childNode.name = updateProgramInput.payload.title;
+          childNode.type = updateProgramInput.payload.type;
+          childNode.content = updateProgramInput.payload.content;
+          await queryRunner.manager.save(childNode);
+          updatedNode.children.push(childNode.id);
+          break;
+        case GraphqlTypes.UpdateProgramType.ReorderChildren:
+        case GraphqlTypes.UpdateProgramType.RemoveChild:
+          updatedNode.children = ['', ...updateProgramInput.payload.children];
+          break;
+        case GraphqlTypes.UpdateProgramType.UpdateNode:
+          updatedNode.name =
+            updateProgramInput.payload.title || updatedNode.name;
+          updatedNode.content =
+            updateProgramInput.payload.content || updatedNode.content;
+          break;
+      }
+      await queryRunner.manager.save(updatedNode);
+
+      // propagate update
+      let nextId = path.pop();
+      while (nextId) {
+        currentNode = nodes_as_map.get(nextId);
+        let nextNode = new ProgramNode();
+        nextNode.name = currentNode.name;
+        nextNode.type = currentNode.type;
+        nextNode.content = currentNode.content;
+        nextNode.children = [
+          ...currentNode.children.slice(
+            0,
+            currentNode.children.indexOf(currentId),
+          ),
+          updatedNode.id,
+          ...currentNode.children.slice(
+            currentNode.children.indexOf(currentId) + 1,
+          ),
+        ];
+        await queryRunner.manager.save(nextNode);
+
+        currentId = currentNode.id;
+        updatedNode = nextNode;
+        nextId = path.pop();
       }
 
       // update program refs
@@ -138,56 +238,7 @@ export class ProgramsService {
 
       await queryRunner.commitTransaction();
     } catch (err) {
-      await queryRunner.rollbackTransaction();
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  async addChild(updateProgramInput: UpdateProgramInput) {
-    const queryRunner = this.datasource.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      // create child node
-      const childNode = new ProgramNode();
-      childNode.type = updateProgramInput.payload.type;
-      childNode.name = updateProgramInput.payload.title;
-      childNode.content = updateProgramInput.payload.content;
-      childNode.children = [];
-      await queryRunner.manager.save(childNode);
-
-      // clone target and add new child ref
-      const targetNode = await queryRunner.manager.findOne(ProgramNode, {
-        where: { id: updateProgramInput.targetId },
-      });
-      const updatedNode = new ProgramNode();
-      updatedNode.type = targetNode.type;
-      updatedNode.name = targetNode.name;
-      updatedNode.content = targetNode.content;
-      updatedNode.children = [...targetNode.children, childNode.id];
-      let currentNode = await queryRunner.manager.save(updatedNode);
-
-      // update parents
-
-      if (currentNode.type !== ProgramNodeType.PROGRAM) {
-      }
-
-      // update program refs
-      await queryRunner.manager.update(
-        Program,
-        {
-          id: updateProgramInput.programId,
-        },
-        {
-          root_node: currentNode,
-        },
-      );
-
-      await queryRunner.commitTransaction();
-    } catch (err) {
+      console.error(err);
       await queryRunner.rollbackTransaction();
     } finally {
       await queryRunner.release();
@@ -195,14 +246,7 @@ export class ProgramsService {
   }
 
   async update(updateProgramInput: UpdateProgramInput) {
-    switch (updateProgramInput.type) {
-      case GraphqlTypes.UpdateProgramType.UpdateNode:
-        await this.updateNode(updateProgramInput);
-        break;
-      case GraphqlTypes.UpdateProgramType.AddChild:
-        await this.addChild(updateProgramInput);
-        break;
-    }
+    await this.updateProgramNodes(updateProgramInput);
     return this.findOne(updateProgramInput.programId);
   }
 

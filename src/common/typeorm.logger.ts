@@ -24,6 +24,13 @@ export class TypeOrmLogger extends Logger implements ITypeOrmLogger {
     queryRunner?: QueryRunner,
   ): any {
     super.error(error);
+    super.error(
+      `${query} ${
+        parameters && parameters.length
+          ? 'params: [ ' + parameters.join(', ') + ' ]'
+          : ''
+      }`,
+    );
   }
   /**
    * Logs query that is slow.

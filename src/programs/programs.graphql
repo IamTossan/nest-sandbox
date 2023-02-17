@@ -46,6 +46,7 @@ input UpdateProgramInputPayload {
   type: ProgramNodeType
   title: String
   content: JSON
+  children: [ID!]
 }
 
 input UpdateProgramInput {

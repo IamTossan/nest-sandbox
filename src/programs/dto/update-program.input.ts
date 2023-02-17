@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   Allow,
+  IsArray,
   IsEnum,
   IsInstance,
   IsJSON,
@@ -29,6 +30,10 @@ export class UpdateProgramInputPayload implements IUpdateProgramInputPayload {
   @Allow()
   @IsOptional()
   content?: Record<string, any>[];
+
+  @IsArray()
+  @IsOptional()
+  children?: string[];
 }
 
 export class UpdateProgramInput implements IUpdateProgramInput {

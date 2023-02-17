@@ -11,11 +11,11 @@ export class ProgramNodesLoader implements NestDataLoader<string, ProgramNode> {
   generateDataLoader(): DataLoader<string, ProgramNode> {
     return new DataLoader<string, ProgramNode>(async (keys) => {
       const ns = await this.programService.findNodesByIds(keys);
-      const ns_as_kv = ns.reduce((acc, cur) => {
-        acc[cur.id] = cur;
-        return acc;
-      }, {});
-      return keys.map((key) => ns_as_kv[key]);
+      const nsAsMap = new Map();
+      for (const n of ns) {
+        nsAsMap.set(n.id, n);
+      }
+      return keys.map((key) => nsAsMap.get(key));
     });
   }
 }

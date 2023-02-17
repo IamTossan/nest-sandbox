@@ -50,7 +50,7 @@ export class ProgramsResolver {
     @Loader(ProgramNodesLoader)
     programNodeLoader: DataLoader<ProgramNode['id'], ProgramNode>,
   ): Promise<ProgramNode[]> {
-    const ids = program.root_node.children;
+    const ids = program.root_node.children.slice(1);
     const nodes = (await programNodeLoader.loadMany(ids)) as ProgramNode[];
     return nodes.map((n) => ({ ...n, title: n.name }));
   }
