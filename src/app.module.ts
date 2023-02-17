@@ -15,6 +15,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProgramsModule } from './programs/programs.module';
 import GraphQLJSON, { GraphQLJSONObject } from 'graphql-type-json';
+import { CommonModule } from './common/common.module';
 
 class EnvironmentVariables {
   @IsNotEmpty()
@@ -78,6 +79,7 @@ class EnvironmentVariables {
     CoffeesModule,
     CoffeeRatingModule,
     ProgramsModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
