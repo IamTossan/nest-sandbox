@@ -56,6 +56,11 @@ input UpdateProgramInput {
   payload: UpdateProgramInputPayload
 }
 
+input PublishProgramInput {
+  programId: ID!
+  label: String!
+}
+
 type Query {
   users: [User!]
   programs: [Program!]
@@ -69,5 +74,6 @@ type Query {
 type Mutation {
   createProgram(createProgramInput: CreateProgramInput!): Program!
   updateProgram(updateProgramInput: UpdateProgramInput!): Program!
+  publishProgram(publishProgramInput: PublishProgramInput!): Program!
   removeProgram(id: Int!): Program
 }

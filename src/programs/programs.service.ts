@@ -10,6 +10,7 @@ import * as GraphqlTypes from '../../src/graphql';
 
 import { CreateProgramInput } from './dto/create-program.input';
 import { UpdateProgramInput } from './dto/update-program.input';
+import { PublishProgramInput } from './dto/publish-program.input';
 
 const listNodesByProgramIdQuery = (id: string) => `
   with nodes as (
@@ -248,6 +249,19 @@ export class ProgramsService {
   async update(updateProgramInput: UpdateProgramInput) {
     await this.updateProgramNodes(updateProgramInput);
     return this.findOne(updateProgramInput.programId);
+  }
+
+  async publish(publishProgramInput: PublishProgramInput) {
+    const latest = await this.programRepository.findOne({
+      where: { id: publishProgramInput.programId },
+      relations: { root_node: true },
+    });
+    const release = new Program();
+    release.root_node = latest.root_node;
+    release.latest_version = latest;
+    release.version_name = publishProgramInput.label;
+    await this.programRepository.save(release);
+    return this.findOne(release.id);
   }
 
   remove(id: string) {

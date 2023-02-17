@@ -2,6 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -49,7 +50,11 @@ export class Program extends BaseEntity {
   @Column()
   version_name: string;
 
-  @OneToOne(() => ProgramNode, { nullable: false })
+  @ManyToOne(() => ProgramNode, { nullable: false })
   @JoinColumn({ name: 'root_node_id' })
   root_node: ProgramNode;
+
+  @ManyToOne(() => Program, { nullable: true })
+  @JoinColumn({ name: 'latest_version_id' })
+  latest_version: Program;
 }

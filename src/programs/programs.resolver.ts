@@ -14,6 +14,7 @@ import { CreateProgramInput } from './dto/create-program.input';
 import { UpdateProgramInput } from './dto/update-program.input';
 import { Program, ProgramNode } from './entities/program.entity';
 import { ProgramNodesLoader } from './programs.dataloaders';
+import { PublishProgramInput } from './dto/publish-program.input';
 
 @Resolver('Program')
 export class ProgramsResolver {
@@ -37,6 +38,13 @@ export class ProgramsResolver {
   @Mutation('updateProgram')
   update(@Args('updateProgramInput') updateProgramInput: UpdateProgramInput) {
     return this.programsService.update(updateProgramInput);
+  }
+
+  @Mutation('publishProgram')
+  publish(
+    @Args('publishProgramInput') publishProgramInput: PublishProgramInput,
+  ) {
+    return this.programsService.publish(publishProgramInput);
   }
 
   @Mutation('removeProgram')
