@@ -81,7 +81,7 @@ export class ProgramsService {
     };
   }
 
-  async findNodesByIds(ids: string[]): Promise<ProgramNode[]> {
+  async findNodesByIds(ids: readonly string[]): Promise<ProgramNode[]> {
     return this.programNodeRepository.find({ where: { id: In(ids) } });
   }
 

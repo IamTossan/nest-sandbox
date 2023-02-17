@@ -6,10 +6,14 @@ import {
   ResolveField,
   Parent,
 } from '@nestjs/graphql';
+import * as DataLoader from 'dataloader';
+import { Loader } from 'nestjs-dataloader';
+
 import { ProgramsService } from './programs.service';
 import { CreateProgramInput } from './dto/create-program.input';
 import { UpdateProgramInput } from './dto/update-program.input';
-import { Program } from './entities/program.entity';
+import { Program, ProgramNode } from './entities/program.entity';
+import { ProgramNodesLoader } from './programs.dataloaders';
 
 @Resolver('Program')
 export class ProgramsResolver {
@@ -41,9 +45,13 @@ export class ProgramsResolver {
   }
 
   @ResolveField()
-  async courses(@Parent() program: Program) {
+  async courses(
+    @Parent() program: Program,
+    @Loader(ProgramNodesLoader)
+    programNodeLoader: DataLoader<ProgramNode['id'], ProgramNode>,
+  ): Promise<ProgramNode[]> {
     const ids = program.root_node.children;
-    const nodes = await this.programsService.findNodesByIds(ids);
+    const nodes = (await programNodeLoader.loadMany(ids)) as ProgramNode[];
     return nodes.map((n) => ({ ...n, title: n.name }));
   }
 }
