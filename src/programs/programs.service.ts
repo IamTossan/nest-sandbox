@@ -23,7 +23,7 @@ export class ProgramsService {
 
   async create(
     createProgramInput: CreateProgramInput,
-  ): Promise<GraphqlTypes.Program> {
+  ): Promise<GraphqlTypes.Program & { root_node: ProgramNode }> {
     const queryRunner = this.datasource.createQueryRunner();
 
     await queryRunner.connect();
@@ -50,7 +50,7 @@ export class ProgramsService {
       title: rootNode.name,
       version: program.version_name,
       versionId: rootNode.id,
-      courses: [],
+      root_node: program.root_node,
     };
   }
 

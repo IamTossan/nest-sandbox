@@ -62,7 +62,7 @@ type Query {
 
 type Query {
   programs: [Program]!
-  program(id: Int!): Program
+  program(id: ID!): Program
 }
 
 type Mutation {
