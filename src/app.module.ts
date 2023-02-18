@@ -73,6 +73,7 @@ class EnvironmentVariables {
         path: join(process.cwd(), 'src/graphql.ts'),
       },
       resolvers: { JSON: GraphQLJSON, JSONObject: GraphQLJSONObject },
+      installSubscriptionHandlers: true,
       playground: true,
       debug: true,
     }),

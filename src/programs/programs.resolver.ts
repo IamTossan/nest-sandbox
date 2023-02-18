@@ -5,7 +5,9 @@ import {
   Args,
   ResolveField,
   Parent,
+  Subscription,
 } from '@nestjs/graphql';
+import { PubSub } from 'graphql-subscriptions';
 import * as DataLoader from 'dataloader';
 import { Loader } from 'nestjs-dataloader';
 
@@ -18,11 +20,18 @@ import { PublishProgramInput } from './dto/publish-program.input';
 
 @Resolver('Program')
 export class ProgramsResolver {
-  constructor(private readonly programsService: ProgramsService) {}
+  private pubSub: PubSub;
+  constructor(private readonly programsService: ProgramsService) {
+    this.pubSub = new PubSub();
+  }
 
   @Mutation('createProgram')
-  create(@Args('createProgramInput') createProgramInput: CreateProgramInput) {
-    return this.programsService.create(createProgramInput);
+  async create(
+    @Args('createProgramInput') createProgramInput: CreateProgramInput,
+  ) {
+    const program = await this.programsService.create(createProgramInput);
+    await this.pubSub.publish('programAdded', { programAdded: program });
+    return program;
   }
 
   @Query('programs')
@@ -61,5 +70,10 @@ export class ProgramsResolver {
     const ids = program.root_node.children.slice(1);
     const nodes = (await programNodeLoader.loadMany(ids)) as ProgramNode[];
     return nodes.map((n) => ({ ...n, title: n.name }));
+  }
+
+  @Subscription('programAdded')
+  programAdded() {
+    return this.pubSub.asyncIterator('programAdded');
   }
 }
