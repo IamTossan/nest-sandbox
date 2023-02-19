@@ -17,6 +17,7 @@ import { ProgramsModule } from './programs/programs.module';
 import GraphQLJSON, { GraphQLJSONObject } from 'graphql-type-json';
 import { CommonModule } from './common/common.module';
 import { UsersModule } from './users/users.module';
+import { playgroundTabs } from './playground';
 
 class EnvironmentVariables {
   @IsNotEmpty()
@@ -76,26 +77,10 @@ class EnvironmentVariables {
       resolvers: { JSON: GraphQLJSON, JSONObject: GraphQLJSONObject },
       installSubscriptionHandlers: true,
       playground: {
-        tabs: [
-          {
-            endpoint: 'http://localhost:3000/graphql',
-            query: `
-              query GetPrograms {
-                programs {
-                  id
-                  title
-                  version
-                  versionId
-                  courses {
-                    id
-                    title
-                  }
-                }
-              }
-              `,
-            name: 'GetPrograms',
-          },
-        ],
+        tabs: playgroundTabs.map((t) => ({
+          ...t,
+          endpoint: 'http://localhost:3000/graphql',
+        })),
       },
       debug: true,
     }),
