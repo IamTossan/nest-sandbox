@@ -34,3 +34,10 @@ export class CreateUserErrorEvent extends CreateUserCommand {
     super(payload);
   }
 }
+
+export class UserCreatedEvent extends CreateUserCommand {
+  public readonly id: string;
+  constructor(payload: ICreateUserCommand & { id: string }) {
+    super(payload);
+  }
+}

@@ -11,6 +11,7 @@ import {
   CreateUserCommand,
   CreateUserDto,
   CreateUserErrorEvent,
+  UserCreatedEvent,
 } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GRAPHQL_PUBSUB } from '../common/common.module';
@@ -36,10 +37,9 @@ export class UsersController {
   async createHandler(@Payload() payload: CreateUserCommand) {
     try {
       const user = await this.usersService.create(payload);
-      this.graphqlPubSub.publish('userCreated', { userCreated: user });
+      this.natsClient.emit(UserCreatedEvent.name, new UserCreatedEvent(user));
+      await this.graphqlPubSub.publish('userCreated', { userCreated: user });
     } catch (err) {
-      console.log('err\n');
-      console.error(err.detail);
       const errorEvent = new CreateUserErrorEvent({
         ...payload,
         message: err.detail,
