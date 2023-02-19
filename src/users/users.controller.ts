@@ -38,7 +38,6 @@ export class UsersController {
     try {
       const user = await this.usersService.create(payload);
       this.natsClient.emit(UserCreatedEvent.name, new UserCreatedEvent(user));
-      await this.graphqlPubSub.publish('userCreated', { userCreated: user });
     } catch (err) {
       const errorEvent = new CreateUserErrorEvent({
         ...payload,
@@ -47,6 +46,11 @@ export class UsersController {
       this.natsClient.emit(CreateUserErrorEvent.name, errorEvent);
     }
     return;
+  }
+
+  @EventPattern(UserCreatedEvent.name, Transport.NATS)
+  onUserCreated(@Payload() payload: UserCreatedEvent) {
+    this.graphqlPubSub.publish('userCreated', { userCreated: payload });
   }
 
   @MessagePattern('updateUser')
