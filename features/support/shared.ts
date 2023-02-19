@@ -24,6 +24,7 @@ const initApp = async () => {
 export const getApp = async () => {
   if (!app) {
     app = await initApp();
+    await app.listen(0, 'localhost');
   }
   return app;
 };

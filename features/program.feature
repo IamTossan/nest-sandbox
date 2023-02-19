@@ -20,3 +20,8 @@ Feature: Program
     When I update the program
     Then I should be able to check the updates
     And the program update did not impact the release
+
+  Scenario: Subscribe on program creation
+    Given I subscribed to program added
+    When I create a program
+    Then I am notified on the created program

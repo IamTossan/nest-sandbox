@@ -1,6 +1,9 @@
 import { When, Then, AfterAll, Before, Given } from '@cucumber/cucumber';
 import * as expect from 'expect';
-import request from 'supertest-graphql';
+import request, {
+  LEGACY_WEBSOCKET_PROTOCOL,
+  supertestWs,
+} from 'supertest-graphql';
 import gql from 'graphql-tag';
 
 import { getApp, stopApp } from './shared';
@@ -251,4 +254,25 @@ Then('the program update did not impact the release', async function () {
     .variables({ id: this.id })
     .expectNoErrors();
   expect(latest.program.title).not.toEqual(release.program.title);
+});
+
+Given('I subscribed to program added', async function () {
+  this.query = await supertestWs(this.app.getHttpServer()).protocol(
+    LEGACY_WEBSOCKET_PROTOCOL,
+  ).subscribe(`
+      subscription OnProgramAdded {
+        programAdded {
+          id
+          title
+        }
+      }`);
+});
+
+Then('I am notified on the created program', async function () {
+  const { data } = await this.query.next().expectNoErrors();
+  await this.query.close();
+  expect(data.programAdded).toMatchObject({
+    id: this.id,
+    title: this.body.name,
+  });
 });
