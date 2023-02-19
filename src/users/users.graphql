@@ -4,6 +4,6 @@ type User {
   email: String!
 }
 
-type Query {
-  users: [User!]
+type Subscription {
+  userCreated: User!
 }

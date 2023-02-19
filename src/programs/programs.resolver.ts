@@ -10,6 +10,7 @@ import {
 import { PubSub } from 'graphql-subscriptions';
 import * as DataLoader from 'dataloader';
 import { Loader } from 'nestjs-dataloader';
+import { Inject } from '@nestjs/common';
 
 import { ProgramsService } from './programs.service';
 import { CreateProgramInput } from './dto/create-program.input';
@@ -17,20 +18,21 @@ import { UpdateProgramInput } from './dto/update-program.input';
 import { Program, ProgramNode } from './entities/program.entity';
 import { ProgramNodesLoader } from './programs.dataloaders';
 import { PublishProgramInput } from './dto/publish-program.input';
+import { GRAPHQL_PUBSUB } from '../common/common.module';
 
 @Resolver('Program')
 export class ProgramsResolver {
-  private pubSub: PubSub;
-  constructor(private readonly programsService: ProgramsService) {
-    this.pubSub = new PubSub();
-  }
+  constructor(
+    private readonly programsService: ProgramsService,
+    @Inject(GRAPHQL_PUBSUB) private readonly graphqlPubSub: PubSub,
+  ) {}
 
   @Mutation('createProgram')
   async create(
     @Args('createProgramInput') createProgramInput: CreateProgramInput,
   ) {
     const program = await this.programsService.create(createProgramInput);
-    await this.pubSub.publish('programAdded', { programAdded: program });
+    await this.graphqlPubSub.publish('programAdded', { programAdded: program });
     return program;
   }
 
@@ -74,6 +76,6 @@ export class ProgramsResolver {
 
   @Subscription('programAdded')
   programAdded() {
-    return this.pubSub.asyncIterator('programAdded');
+    return this.graphqlPubSub.asyncIterator('programAdded');
   }
 }

@@ -16,6 +16,7 @@ import { AppService } from './app.service';
 import { ProgramsModule } from './programs/programs.module';
 import GraphQLJSON, { GraphQLJSONObject } from 'graphql-type-json';
 import { CommonModule } from './common/common.module';
+import { UsersModule } from './users/users.module';
 
 class EnvironmentVariables {
   @IsNotEmpty()
@@ -74,13 +75,35 @@ class EnvironmentVariables {
       },
       resolvers: { JSON: GraphQLJSON, JSONObject: GraphQLJSONObject },
       installSubscriptionHandlers: true,
-      playground: true,
+      playground: {
+        tabs: [
+          {
+            endpoint: 'http://localhost:3000/graphql',
+            query: `
+              query GetPrograms {
+                programs {
+                  id
+                  title
+                  version
+                  versionId
+                  courses {
+                    id
+                    title
+                  }
+                }
+              }
+              `,
+            name: 'GetPrograms',
+          },
+        ],
+      },
       debug: true,
     }),
     CoffeesModule,
     CoffeeRatingModule,
     ProgramsModule,
     CommonModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

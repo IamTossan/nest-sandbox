@@ -1,18 +1,14 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity } from './base.entity';
 
-@Index(['name', 'type'])
 @Entity()
-export class Event {
+export class Event extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  type: string;
+  event_name: string;
 
-  @Index()
-  @Column()
-  name: string;
-
-  @Column('json')
+  @Column('jsonb')
   payload: Record<string, any>;
 }

@@ -1,7 +1,7 @@
 import { Injectable, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Event } from '../events/entities/event.entity';
+import { Event } from '../common/event.entity';
 import { Coffee, Flavor } from './coffee.entity';
 import coffeesConfig from './coffees.config';
 import { COFFEE_BRANDS } from './coffees.constants';
