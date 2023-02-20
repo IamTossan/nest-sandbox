@@ -10,7 +10,7 @@ import { UsersService } from './users.service';
 import {
   CreateUserCommand,
   CreateUserDto,
-  CreateUserErrorEvent,
+  CreateUserFailedEvent,
   UserCreatedEvent,
 } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -28,27 +28,30 @@ export class UsersController {
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
     this.natsClient.emit(
-      CreateUserCommand.name,
+      CreateUserCommand.event_name,
       new CreateUserCommand(createUserDto),
     );
   }
 
-  @EventPattern(CreateUserCommand.name, Transport.NATS)
+  @EventPattern(CreateUserCommand.event_name, Transport.NATS)
   async createHandler(@Payload() payload: CreateUserCommand) {
     try {
       const user = await this.usersService.create(payload);
-      this.natsClient.emit(UserCreatedEvent.name, new UserCreatedEvent(user));
+      this.natsClient.emit(
+        UserCreatedEvent.event_name,
+        new UserCreatedEvent(user),
+      );
     } catch (err) {
-      const errorEvent = new CreateUserErrorEvent({
+      const errorEvent = new CreateUserFailedEvent({
         ...payload,
         message: err.detail,
       });
-      this.natsClient.emit(CreateUserErrorEvent.name, errorEvent);
+      this.natsClient.emit(CreateUserFailedEvent.event_name, errorEvent);
     }
     return;
   }
 
-  @EventPattern(UserCreatedEvent.name, Transport.NATS)
+  @EventPattern(UserCreatedEvent.event_name, Transport.NATS)
   onUserCreated(@Payload() payload: UserCreatedEvent) {
     this.graphqlPubSub.publish('userCreated', { userCreated: payload });
   }
